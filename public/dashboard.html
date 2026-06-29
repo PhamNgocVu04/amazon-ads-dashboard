@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Amazon Ads Dashboard — Account 2</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0f1117;--bg2:#1a1d27;--bg3:#242836;--text:#e4e4e7;--text2:#a1a1aa;--text3:#71717a;--border:#2e3348;--blue:#6366f1;--cyan:#06b6d4;--green:#10b981;--amber:#f59e0b;--red:#ef4444;--pink:#ec4899}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);line-height:1.5}
+.container{max-width:1400px;margin:0 auto;padding:16px 20px}
+.header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
+.header h1{font-size:20px;font-weight:600}
+.header .sub{font-size:12px;color:var(--text3)}
+.tabs{display:flex;gap:4px;background:var(--bg2);border-radius:10px;padding:3px}
+.tabs button{padding:6px 16px;border:none;border-radius:8px;font-size:13px;cursor:pointer;background:transparent;color:var(--text2);font-weight:500;transition:all .2s}
+.tabs button.active{background:var(--blue);color:#fff}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:20px}
+.stat{background:var(--bg2);border-radius:12px;padding:16px}
+.stat .label{font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.stat .value{font-size:22px;font-weight:600}
+.stat .sub{font-size:11px;color:var(--text3);margin-top:2px}
+.card{background:var(--bg2);border-radius:12px;padding:16px;margin-bottom:16px}
+.card h3{font-size:14px;font-weight:500;margin-bottom:12px;color:var(--text2)}
+.filters{display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center}
+.filters input,.filters select{padding:7px 12px;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text);font-size:13px;outline:none}
+.filters input:focus{border-color:var(--blue)}
+.filters input{flex:1;min-width:200px}
+.count{font-size:12px;color:var(--text3)}
+table{width:100%;border-collapse:collapse;font-size:12px}
+th{padding:8px 10px;text-align:right;font-weight:500;color:var(--text3);border-bottom:1px solid var(--border);cursor:pointer;user-select:none;white-space:nowrap}
+th:first-child{text-align:left}
+th:hover{color:var(--text)}
+td{padding:8px 10px;text-align:right;border-bottom:1px solid var(--border);color:var(--text2)}
+td:first-child{text-align:left;color:var(--text);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+tr:hover td{background:var(--bg3)}
+.badge{padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600}
+.badge-enabled{background:#064e3b;color:#6ee7b7}
+.badge-paused{background:#78350f;color:#fcd34d}
+.badge-budget{background:#581c87;color:#e9d5ff}
+.badge-sp{background:#312e81;color:#a5b4fc}
+.badge-sb{background:#164e63;color:#67e8f9}
+.badge-sd{background:#713f12;color:#fde68a}
+.btn{padding:3px 10px;border-radius:6px;font-size:11px;font-weight:500;cursor:pointer;border:none;transition:all .15s}
+.btn-pause{background:#78350f;color:#fcd34d}
+.btn-enable{background:#064e3b;color:#6ee7b7}
+.btn-save{background:var(--blue);color:#fff}
+.btn-cancel{background:var(--bg3);color:var(--text2)}
+.budget-edit{display:inline-flex;gap:4px;align-items:center}
+.budget-edit input{width:65px;padding:2px 6px;border-radius:4px;border:1px solid var(--border);background:var(--bg);color:var(--text);font-size:12px}
+.budget-val{cursor:pointer;border-bottom:1px dashed var(--border)}
+.budget-val:hover{color:var(--blue);border-color:var(--blue)}
+.charts-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+@media(max-width:800px){.charts-grid{grid-template-columns:1fr}}
+.toast{position:fixed;top:16px;right:16px;padding:10px 16px;border-radius:8px;font-size:13px;font-weight:500;z-index:999;animation:slideIn .3s}
+.toast-success{background:#064e3b;color:#6ee7b7;border:1px solid #065f46}
+.toast-error{background:#7f1d1d;color:#fca5a5;border:1px solid #991b1b}
+@keyframes slideIn{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.loading-bar{position:fixed;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,var(--blue),var(--cyan));z-index:1000;animation:loading 1s infinite}
+@keyframes loading{0%{opacity:1}50%{opacity:.5}100%{opacity:1}}
+.empty{text-align:center;padding:60px 20px;color:var(--text3)}
+.empty h2{font-size:18px;margin-bottom:8px;color:var(--text2)}
+.acos-good{color:#10b981}.acos-warn{color:#f59e0b}.acos-bad{color:#ef4444}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <div>
+      <h1>Amazon Ads Dashboard</h1>
+      <div class="sub" id="headerSub">Loading...</div>
+    </div>
+    <div class="tabs">
+      <button class="active" onclick="switchTab('overview',this)">Overview</button>
+      <button onclick="switchTab('campaigns',this)">Campaigns</button>
+      <button onclick="switchTab('charts',this)">Charts</button>
+    </div>
+  </div>
+
+  <div id="loading" class="loading-bar" style="display:none"></div>
+  <div id="toast" class="toast" style="display:none"></div>
+
+  <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap">
+    <span style="font-size:12px;color:#71717a">From</span>
+    <input type="date" id="dateFrom" style="padding:6px 10px;border-radius:8px;border:1px solid #2e3348;background:#242836;color:#e4e4e7;font-size:13px;outline:none">
+    <span style="font-size:12px;color:#71717a">To</span>
+    <input type="date" id="dateTo" style="padding:6px 10px;border-radius:8px;border:1px solid #2e3348;background:#242836;color:#e4e4e7;font-size:13px;outline:none">
+    <button onclick="applyDateRange()" style="padding:6px 14px;border-radius:8px;border:none;background:#6366f1;color:#fff;font-size:12px;font-weight:500;cursor:pointer">Apply</button>
+    <button onclick="setPreset(7)" style="padding:5px 10px;border-radius:6px;border:1px solid #2e3348;background:transparent;color:#a1a1aa;font-size:11px;cursor:pointer">7d</button>
+    <button onclick="setPreset(14)" style="padding:5px 10px;border-radius:6px;border:1px solid #2e3348;background:transparent;color:#a1a1aa;font-size:11px;cursor:pointer">14d</button>
+    <button onclick="setPreset(30)" style="padding:5px 10px;border-radius:6px;border:1px solid #2e3348;background:transparent;color:#a1a1aa;font-size:11px;cursor:pointer">30d</button>
+  </div>
+
+  <div id="tab-overview"></div>
+  <div id="tab-campaigns" style="display:none"></div>
+  <div id="tab-charts" style="display:none"></div>
+</div>
+
+<script>
+const API_BASE = window.location.origin;
+const API_KEY = 'acf15dfa88f5718a0371a1bdbb3726dbe3ec1790e89eb304a88ebe8f315a0fa9';
+
+let campaigns = [];
+let dailyData = [];
+let sortKey = 'spend_7d';
+let sortDir = 'desc';
+let filterText = '';
+let filterType = 'all';
+let filterStatus = 'all';
+let editingId = null;
+let charts = {};
+let manualBudgets = {};
+let manualAlerts = {};
+let editingNewBudget = null;
+let currentPage = 1;
+const PAGE_SIZE = 100;
+let currentUserRole = 'viewer';
+let dateFrom = new Date(Date.now() - 7*86400000).toISOString().split('T')[0];
+let dateTo = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+
+async function apiFetch(path) {
+  const res = await fetch(API_BASE + '/api/amazon-ads/dashboard/' + path, {
+    headers: { 'X-Client-Key': API_KEY }
+  });
+  return res.json();
+}
+
+async function apiPost(path, body) {
+  const res = await fetch(API_BASE + '/api/amazon-ads/' + path, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Client-Key': API_KEY },
+    body: JSON.stringify(body)
+  });
+  return { ok: res.ok, data: await res.json() };
+}
+
+function showLoading(v) { document.getElementById('loading').style.display = v ? 'block' : 'none'; }
+function showToast(msg, type='success') {
+  const t = document.getElementById('toast');
+  t.className = 'toast toast-' + type;
+  t.textContent = msg;
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 3000);
+}
+
+function fmt$(v) { return '$' + Number(v||0).toFixed(2); }
+function fmtPct(v) { return Number(v||0).toFixed(1) + '%'; }
+function fmtNum(v) { return Number(v||0).toLocaleString(); }
+
+function switchTab(id, btn) {
+  document.querySelectorAll('[id^="tab-"]').forEach(e => e.style.display = 'none');
+  document.getElementById('tab-' + id).style.display = 'block';
+  document.querySelectorAll('.tabs button').forEach(b => b.classList.remove('active'));
+  if (btn) btn.classList.add('active');
+  if (id === 'charts') renderCharts();
+}
+
+function getFiltered() {
+  let d = [...campaigns];
+  if (filterText) d = d.filter(c => (c.name||'').toLowerCase().includes(filterText.toLowerCase()));
+  if (filterType !== 'all') d = d.filter(c => c.api_type === filterType);
+  if (filterStatus !== 'all') {
+    if (filterStatus === 'enabled') d = d.filter(c => (c.status||'').toUpperCase().includes('ENABLED'));
+    else if (filterStatus === 'paused') d = d.filter(c => (c.status||'').toUpperCase().includes('PAUSED'));
+    else if (filterStatus === 'budget') d = d.filter(c => (c.status||'').toUpperCase().includes('BUDGET'));
+    else if (filterStatus === 'has_new_budget') d = d.filter(c => manualBudgets[c.campaign_id] || computeRules(c).newBudget !== '');
+    else if (filterStatus === 'has_alert') d = d.filter(c => manualAlerts[c.campaign_id] === 'Yes' || computeRules(c).alert === 'Yes');
+  }
+  d.sort((a,b) => {
+    const av = parseFloat(a[sortKey]) || 0;
+    const bv = parseFloat(b[sortKey]) || 0;
+    return sortDir === 'asc' ? av - bv : bv - av;
+  });
+  return d;
+}
+
+function getStats() {
+  const s = {count:campaigns.length,enabled:0,paused:0,impressions:0,clicks:0,spend:0,sales:0,orders:0};
+  campaigns.forEach(c => {
+    s.impressions += Number(c.impressions_7d)||0;
+    s.clicks += Number(c.clicks_7d)||0;
+    s.spend += Number(c.spend_7d)||0;
+    s.sales += Number(c.sales_7d)||0;
+    s.orders += Number(c.orders_7d)||0;
+    if ((c.status||'').toUpperCase().includes('ENABLED')) s.enabled++; else s.paused++;
+  });
+  s.acos = s.sales > 0 ? s.spend / s.sales * 100 : 0;
+  s.ctr = s.impressions > 0 ? s.clicks / s.impressions * 100 : 0;
+  s.cpc = s.clicks > 0 ? s.spend / s.clicks : 0;
+  s.roas = s.spend > 0 ? s.sales / s.spend : 0;
+  return s;
+}
+
+function renderOverview() {
+  const s = getStats();
+  document.getElementById('tab-overview').innerHTML = `
+    <div class="stats">
+      <div class="stat"><div class="label">Campaigns</div><div class="value">${s.count}</div><div class="sub">${s.enabled} active / ${s.paused} paused</div></div>
+      <div class="stat"><div class="label">Spend 7d</div><div class="value">${fmt$(s.spend)}</div></div>
+      <div class="stat"><div class="label">Sales 7d</div><div class="value">${fmt$(s.sales)}</div><div class="sub">${s.orders} orders</div></div>
+      <div class="stat"><div class="label">ACoS 7d</div><div class="value">${fmtPct(s.acos)}</div><div class="sub">ROAS: ${s.roas.toFixed(2)}x</div></div>
+      <div class="stat"><div class="label">Impressions</div><div class="value">${fmtNum(s.impressions)}</div></div>
+      <div class="stat"><div class="label">Clicks</div><div class="value">${fmtNum(s.clicks)}</div><div class="sub">CTR: ${fmtPct(s.ctr)}</div></div>
+      <div class="stat"><div class="label">CPC</div><div class="value">${fmt$(s.cpc)}</div></div>
+      <div class="stat"><div class="label">Orders</div><div class="value">${fmtNum(s.orders)}</div></div>
+    </div>
+    <div class="charts-grid">
+      <div class="card"><h3>Spend by type</h3><canvas id="chart-type-spend" height="200"></canvas></div>
+      <div class="card"><h3>Top 10 by spend</h3><canvas id="chart-top-spend" height="200"></canvas></div>
+    </div>`;
+  renderOverviewCharts();
+}
+
+function renderOverviewCharts() {
+  const typeMap = {};
+  campaigns.forEach(c => {
+    const t = (c.api_type||'sp').toUpperCase();
+    if (!typeMap[t]) typeMap[t] = 0;
+    typeMap[t] += Number(c.spend_7d)||0;
+  });
+  const types = Object.keys(typeMap);
+  const pieColors = ['#6366f1','#06b6d4','#f59e0b','#ef4444'];
+  const barColors = ['#6366f1','#06b6d4','#f59e0b','#ef4444','#10b981','#ec4899','#8b5cf6','#14b8a6','#f97316','#84cc16'];
+
+  const ctx1 = document.getElementById('chart-type-spend');
+  if (ctx1) {
+    if (charts.typeSpend) charts.typeSpend.destroy();
+    charts.typeSpend = new Chart(ctx1, {
+      type: 'doughnut',
+      data: { labels: types, datasets: [{ data: types.map(t => typeMap[t].toFixed(2)), backgroundColor: pieColors }] },
+      options: { responsive: true, plugins: { legend: { position: 'bottom', labels: { color: '#a1a1aa', font: { size: 12 } } } } }
+    });
+  }
+
+  const top10 = [...campaigns].sort((a,b) => (Number(b.spend_7d)||0) - (Number(a.spend_7d)||0)).slice(0, 10);
+  const ctx2 = document.getElementById('chart-top-spend');
+  if (ctx2) {
+    if (charts.topSpend) charts.topSpend.destroy();
+    charts.topSpend = new Chart(ctx2, {
+      type: 'bar',
+      data: {
+        labels: top10.map(c => (c.name||'').substring(0, 18)),
+        datasets: [{ label: 'Spend', data: top10.map(c => Number(c.spend_7d)||0), backgroundColor: top10.map((c,i) => barColors[i % barColors.length]), borderRadius: 4 }]
+      },
+      options: { indexAxis: 'y', responsive: true, plugins: { legend: { display: false } }, scales: { x: { ticks: { color: '#71717a' } }, y: { ticks: { color: '#a1a1aa', font: { size: 10 } } } } }
+    });
+  }
+}
+
+function statusBadge(status) {
+  const s = (status||'').toUpperCase();
+  if (s.includes('BUDGET')) return '<span class="badge badge-budget">Out of budget</span>';
+  if (s.includes('ENABLED')) return '<span class="badge badge-enabled">Enabled</span>';
+  return '<span class="badge badge-paused">Paused</span>';
+}
+
+function typeBadge(t) {
+  const cls = {'sp':'badge-sp','sb':'badge-sb','sd':'badge-sd'}[t] || '';
+  return `<span class="badge ${cls}">${(t||'').toUpperCase()}</span>`;
+}
+
+function acosClass(v) { v = Number(v)||0; return v === 0 ? '' : v < 30 ? 'acos-good' : v < 50 ? 'acos-warn' : 'acos-bad'; }
+
+function computeRules(c) {
+  const name = c.name || '';
+  const status = (c.status||'').toUpperCase();
+  const budget = parseFloat(c.budget) || 0;
+  const acos = parseFloat(c.acos_7d) || 0;
+  const orders = parseInt(c.orders_7d) || 0;
+  const spend = parseFloat(c.spend_7d) || 0;
+  const isAuto = /(?:^|-\s*)AT(?:\s*-|$)/i.test(name);
+  const isOutOfBudget = status.includes('BUDGET');
+  let newBudget = '';
+  if (isOutOfBudget && budget > 0) {
+    if (acos > 0 && acos < 30 && !isAuto) newBudget = (budget * 1.30).toFixed(2);
+    else if (acos > 0 && acos < 30 && isAuto) newBudget = (budget * 1.15).toFixed(2);
+    else if (acos > 40) newBudget = (budget * 0.70).toFixed(2);
+    else if (orders === 0 && spend >= 20) newBudget = (budget * 0.85).toFixed(2);
+  }
+  let alert = '';
+  const hasPR = /(?:^|-\s*)PR(?:\s*-|$)/i.test(name);
+  if (isAuto || hasPR) {
+    if (acos > 50 && orders < 10) alert = 'Yes';
+    else if (spend >= 15 && orders === 0) alert = 'Yes';
+  }
+  return { newBudget, alert };
+}
+
+function renderCampaigns() {
+  const filtered = getFiltered();
+  const cols = [
+    {key:'name',label:'Campaign',align:'left'},
+    {key:'api_type',label:'Type'},
+    {key:'status',label:'Status'},
+    {key:'budget',label:'Budget'},
+    {key:'impressions_7d',label:'Imp 7d'},
+    {key:'clicks_7d',label:'Click 7d'},
+    {key:'orders_7d',label:'Order 7d'},
+    {key:'sales_7d',label:'Sale 7d'},
+    {key:'acos_7d',label:'ACoS 7d'},
+    {key:'spend_7d',label:'Spend 7d'},
+    {key:'new_budget',label:'New Budget'},
+    {key:'alert',label:'Alert'},
+  ];
+  const arrow = k => sortKey===k ? (sortDir==='asc'?'↑':'↓') : '';
+
+  let html = `
+    <div class="filters">
+      <input type="text" placeholder="Search campaigns..." value="${filterText}" oninput="filterText=this.value;currentPage=1;renderCampaigns()">
+      <select onchange="filterType=this.value;currentPage=1;renderCampaigns()">
+        <option value="all" ${filterType==='all'?'selected':''}>All types</option>
+        <option value="sp" ${filterType==='sp'?'selected':''}>SP</option>
+        <option value="sb" ${filterType==='sb'?'selected':''}>SB</option>
+        <option value="sd" ${filterType==='sd'?'selected':''}>SD</option>
+      </select>
+      <select onchange="filterStatus=this.value;currentPage=1;renderCampaigns()">
+        <option value="all" ${filterStatus==='all'?'selected':''}>All status</option>
+        <option value="enabled" ${filterStatus==='enabled'?'selected':''}>Enabled</option>
+        <option value="paused" ${filterStatus==='paused'?'selected':''}>Paused</option>
+        <option value="budget" ${filterStatus==='budget'?'selected':''}>Out of budget</option>
+        <option value="has_new_budget" ${filterStatus==='has_new_budget'?'selected':''}>Has new budget</option>
+        <option value="has_alert" ${filterStatus==='has_alert'?'selected':''}>Alert: turn off</option>
+      </select>
+      <span class="count">${filtered.length} campaigns</span>
+      ${currentUserRole === 'admin' ? `<button class="btn btn-save" style="padding:6px 14px;font-size:12px;margin-left:auto" onclick="submitAllBudgets()">Submit budgets (${Object.keys(manualBudgets).filter(k=>manualBudgets[k]).length})</button>
+      <button class="btn" style="padding:6px 14px;font-size:12px;background:#7f1d1d;color:#fca5a5" onclick="submitAllAlerts()">Pause alerts (${Object.keys(manualAlerts).filter(k=>manualAlerts[k]==='Yes').length})</button>` : ''}
+    </div>
+    <div style="overflow-x:auto;border-radius:12px;border:1px solid var(--border)">
+    <table>
+    <thead><tr>`;
+  cols.forEach(c => {
+    html += `<th style="text-align:${c.align||'right'}" onclick="doSort('${c.key}')">${c.label} ${arrow(c.key)}</th>`;
+  });
+  html += '<th style="text-align:center">Actions</th></tr></thead><tbody>';
+
+  filtered.slice((currentPage-1)*PAGE_SIZE, currentPage*PAGE_SIZE).forEach(c => {
+    const isEnabled = (c.status||'').toUpperCase().includes('ENABLED');
+    const cid = c.campaign_id;
+    const rules = computeRules(c);
+    c.new_budget = rules.newBudget ? parseFloat(rules.newBudget) : 0;
+    c.alert = rules.alert === 'Yes' ? 1 : 0;
+    html += '<tr>';
+    html += `<td title="${c.name}">${c.name||''}</td>`;
+    html += `<td>${typeBadge(c.api_type)}</td>`;
+    html += `<td>${statusBadge(c.status)}</td>`;
+    if (editingId === cid && currentUserRole === 'admin') {
+      html += `<td><div class="budget-edit">
+        <input id="budgetInput" value="${rules.newBudget || c.budget}" onkeydown="if(event.key==='Enter')saveBudget('${cid}')">
+        <button class="btn btn-save" onclick="saveBudget('${cid}')">✓</button>
+        <button class="btn btn-cancel" onclick="editingId=null;renderCampaigns()">✕</button>
+      </div></td>`;
+    } else {
+      html += `<td><span class="${currentUserRole==='admin'?'budget-val':''}" ${currentUserRole==='admin'?'onclick="editingId=\''+cid+'\';renderCampaigns()"':''}>${fmt$(c.budget)}</span></td>`;
+    }
+    html += `<td>${fmtNum(c.impressions_7d)}</td>`;
+    html += `<td>${fmtNum(c.clicks_7d)}</td>`;
+    html += `<td>${fmtNum(c.orders_7d)}</td>`;
+    html += `<td style="font-weight:500;color:var(--text)">${fmt$(c.sales_7d)}</td>`;
+    html += `<td class="${acosClass(c.acos_7d)}" style="font-weight:500">${fmtPct(c.acos_7d)}</td>`;
+    html += `<td>${fmt$(c.spend_7d)}</td>`;
+    const nb = manualBudgets[cid] || rules.newBudget || '';
+    if (editingNewBudget === cid && currentUserRole === 'admin') {
+      html += `<td><div class="budget-edit"><input id="nbInput" value="${nb}" style="width:65px" onkeydown="if(event.key==='Enter'){manualBudgets['${cid}']=this.value;editingNewBudget=null;renderCampaigns()}" placeholder="$"><button class="btn btn-save" onclick="manualBudgets['${cid}']=document.getElementById('nbInput').value;editingNewBudget=null;renderCampaigns()">✓</button><button class="btn btn-cancel" onclick="editingNewBudget=null;renderCampaigns()">✕</button></div></td>`;
+    } else {
+      html += `<td style="text-align:right${currentUserRole==='admin'?';cursor:pointer':''}" ${currentUserRole==='admin'?'onclick="editingNewBudget=\''+cid+'\';renderCampaigns()"':''}>${nb ? '<span style="color:#a78bfa;font-weight:500">$'+Number(nb).toFixed(2)+'</span>' : '<span style="color:var(--text3)">—</span>'}</td>`;
+    }
+    const alertVal = manualAlerts.hasOwnProperty(cid) ? manualAlerts[cid] : rules.alert;
+    if (currentUserRole === 'admin') {
+      html += `<td style="text-align:center;cursor:pointer" onclick="manualAlerts['${cid}']= manualAlerts.hasOwnProperty('${cid}') ? (manualAlerts['${cid}']==='Yes'?'':'Yes') : (rules.alert==='Yes'?'':'Yes');renderCampaigns()">${alertVal === 'Yes' ? '<span class="badge" style="background:#7f1d1d;color:#fca5a5">Turn off</span>' : '<span style="color:var(--text3)">—</span>'}</td>`;
+    } else {
+      html += `<td style="text-align:center">${alertVal === 'Yes' ? '<span class="badge" style="background:#7f1d1d;color:#fca5a5">Turn off</span>' : '<span style="color:var(--text3)">—</span>'}</td>`;
+    }
+    if (currentUserRole === 'admin') {
+      html += `<td style="text-align:center"><div style="display:flex;gap:4px;justify-content:center">
+        <button class="btn btn-enable" style="${isEnabled?'opacity:.3':''}" onclick="changeState('${cid}','ENABLED')" ${isEnabled?'disabled':''}>Enable</button>
+        <button class="btn btn-pause" style="${!isEnabled?'opacity:.3':''}" onclick="changeState('${cid}','PAUSED')" ${!isEnabled?'disabled':''}>Pause</button>
+      </div></td>`;
+    } else {
+      html += '<td style="text-align:center;color:var(--text3);font-size:11px">View only</td>';
+    }
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  html += '<div style="display:flex;justify-content:center;align-items:center;gap:8px;padding:16px">';
+  if (totalPages > 1) {
+    html += `<button class="btn btn-cancel" style="padding:5px 14px" onclick="currentPage=1;renderCampaigns()" ${currentPage===1?'disabled style="opacity:.3;padding:5px 14px"':''}>First</button>`;
+    html += `<button class="btn btn-cancel" style="padding:5px 14px" onclick="currentPage--;renderCampaigns()" ${currentPage===1?'disabled style="opacity:.3;padding:5px 14px"':''}>Prev</button>`;
+  }
+  html += `<span class="count">Page ${currentPage} / ${totalPages} (${filtered.length} campaigns)</span>`;
+  if (totalPages > 1) {
+    html += `<button class="btn btn-cancel" style="padding:5px 14px" onclick="currentPage++;renderCampaigns()" ${currentPage>=totalPages?'disabled style="opacity:.3;padding:5px 14px"':''}>Next</button>`;
+    html += `<button class="btn btn-cancel" style="padding:5px 14px" onclick="currentPage=${totalPages};renderCampaigns()" ${currentPage>=totalPages?'disabled style="opacity:.3;padding:5px 14px"':''}>Last</button>`;
+  }
+  html += '</div>';
+
+  document.getElementById('tab-campaigns').innerHTML = html;
+  if (editingId) { const inp = document.getElementById('budgetInput'); if (inp) inp.focus(); }
+  if (editingNewBudget) { const inp = document.getElementById('nbInput'); if (inp) inp.focus(); }
+  const si = document.querySelector('#tab-campaigns input[type=text]');
+  if (si && filterText) { si.focus(); si.setSelectionRange(si.value.length, si.value.length); }
+}
+
+function doSort(key) {
+  if (sortKey === key) sortDir = sortDir === 'desc' ? 'asc' : 'desc';
+  else { sortKey = key; sortDir = 'desc'; }
+  currentPage = 1;
+  renderCampaigns();
+}
+
+async function saveBudget(cid) {
+  const c = campaigns.find(x => x.campaign_id === cid);
+  if (!c) return;
+  const val = document.getElementById('budgetInput')?.value;
+  if (!val || isNaN(val)) { showToast('Invalid budget', 'error'); return; }
+  showLoading(true);
+  try {
+    const { ok } = await apiPost('campaigns/budget', {
+      account_id: Number(c.account_id), mkp_id: Number(c.mkp_id),
+      api_type: c.api_type, campaign_id: cid,
+      budget: parseFloat(val), budget_type: 'DAILY'
+    });
+    if (ok) { c.budget = val; showToast('Budget updated to $' + val); }
+    else showToast('Failed to update', 'error');
+  } catch (e) { showToast('Error: ' + e.message, 'error'); }
+  editingId = null;
+  showLoading(false);
+  renderCampaigns();
+}
+
+
+async function submitAllBudgets() {
+  const entries = Object.entries(manualBudgets).filter(([k,v]) => v && !isNaN(v));
+  if (!entries.length) { showToast('No budgets to submit', 'error'); return; }
+  if (!confirm('Submit ' + entries.length + ' budget changes to Amazon?')) return;
+  showLoading(true);
+  let ok = 0;
+  for (const [cid, val] of entries) {
+    const c = campaigns.find(x => x.campaign_id === cid);
+    if (!c) continue;
+    try {
+      const res = await apiPost('campaigns/budget', {
+        account_id: Number(c.account_id), mkp_id: Number(c.mkp_id),
+        api_type: c.api_type, campaign_id: cid,
+        budget: parseFloat(val), budget_type: 'DAILY'
+      });
+      if (res.ok) { c.budget = val; delete manualBudgets[cid]; ok++; }
+    } catch (e) {}
+  }
+  showLoading(false);
+  showToast(ok + '/' + entries.length + ' budgets updated');
+  renderCampaigns();
+}
+
+async function submitAllAlerts() {
+  const cids = Object.entries(manualAlerts).filter(([k,v]) => v === 'Yes').map(([k]) => k);
+  if (!cids.length) { showToast('No campaigns to pause', 'error'); return; }
+  const names = cids.map(id => campaigns.find(x => x.campaign_id === id)?.name || id).join('\n• ');
+  if (!confirm('PAUSE ' + cids.length + ' campaigns?\n\n• ' + names)) return;
+  showLoading(true);
+  let ok = 0;
+  const groups = {};
+  cids.forEach(cid => {
+    const c = campaigns.find(x => x.campaign_id === cid);
+    if (!c) return;
+    const key = c.account_id + '|' + c.mkp_id + '|' + c.api_type;
+    if (!groups[key]) groups[key] = { c, campaigns: [] };
+    groups[key].campaigns.push({ campaign_id: cid, state: 'PAUSED' });
+  });
+  for (const g of Object.values(groups)) {
+    try {
+      const res = await apiPost('campaigns/state', {
+        account_id: Number(g.c.account_id), mkp_id: Number(g.c.mkp_id),
+        api_type: g.c.api_type, campaigns: g.campaigns
+      });
+      if (res.ok) {
+        g.campaigns.forEach(gc => {
+          const c = campaigns.find(x => x.campaign_id === gc.campaign_id);
+          if (c) c.status = 'CAMPAIGN_PAUSED';
+          delete manualAlerts[gc.campaign_id];
+          ok++;
+        });
+      }
+    } catch (e) {}
+  }
+  showLoading(false);
+  showToast(ok + ' campaigns paused');
+  renderCampaigns();
+  renderOverview();
+}
+
+async function changeState(cid, newState) {
+  const c = campaigns.find(x => x.campaign_id === cid);
+  if (!c) return;
+  if (!confirm(`${newState === 'PAUSED' ? 'PAUSE' : 'ENABLE'} campaign "${c.name}"?\n\nCurrent: ${c.status}\nNew: ${newState}`)) return;
+  showLoading(true);
+  try {
+    const { ok } = await apiPost('campaigns/state', {
+      account_id: Number(c.account_id), mkp_id: Number(c.mkp_id),
+      api_type: c.api_type,
+      campaigns: [{ campaign_id: cid, state: newState }]
+    });
+    if (ok) {
+      c.status = newState === 'PAUSED' ? 'CAMPAIGN_PAUSED' : 'CAMPAIGN_STATUS_ENABLED';
+      showToast('Campaign ' + (newState === 'PAUSED' ? 'paused' : 'enabled'));
+    } else showToast('Failed', 'error');
+  } catch (e) { showToast('Error: ' + e.message, 'error'); }
+  showLoading(false);
+  renderCampaigns();
+  renderOverview();
+}
+
+function renderCharts() {
+  if (!dailyData.length) {
+    document.getElementById('tab-charts').innerHTML = '<div class="empty"><h2>No daily data</h2><p>Daily data will appear after reports are downloaded.</p></div>';
+    return;
+  }
+  document.getElementById('tab-charts').innerHTML = `
+    <div class="charts-grid">
+      <div class="card"><h3>Daily spend & sales</h3><canvas id="chart-daily-spend" height="250"></canvas></div>
+      <div class="card"><h3>Daily ACoS</h3><canvas id="chart-daily-acos" height="250"></canvas></div>
+      <div class="card"><h3>Daily clicks & orders</h3><canvas id="chart-daily-clicks" height="250"></canvas></div>
+      <div class="card"><h3>Daily impressions</h3><canvas id="chart-daily-imp" height="250"></canvas></div>
+    </div>`;
+
+  const labels = dailyData.map(d => d.date.substring(5));
+  const opts = (unit) => ({
+    responsive: true,
+    interaction: { intersect: false, mode: 'index' },
+    plugins: { legend: { labels: { color: '#a1a1aa', font: { size: 11 } } } },
+    scales: {
+      x: { ticks: { color: '#71717a', font: { size: 10 } }, grid: { color: '#2e3348' } },
+      y: { ticks: { color: '#71717a', callback: v => unit === '$' ? '$'+v : unit === '%' ? v+'%' : v }, grid: { color: '#2e3348' } }
+    }
+  });
+
+  if (charts.dailySpend) charts.dailySpend.destroy();
+  charts.dailySpend = new Chart(document.getElementById('chart-daily-spend'), {
+    type: 'line', data: {
+      labels,
+      datasets: [
+        { label: 'Spend', data: dailyData.map(d => d.spend), borderColor: '#6366f1', backgroundColor: '#6366f122', fill: true, tension: .3 },
+        { label: 'Sales', data: dailyData.map(d => d.sales), borderColor: '#06b6d4', backgroundColor: '#06b6d422', fill: true, tension: .3 }
+      ]
+    }, options: opts('$')
+  });
+
+  if (charts.dailyAcos) charts.dailyAcos.destroy();
+  charts.dailyAcos = new Chart(document.getElementById('chart-daily-acos'), {
+    type: 'line', data: {
+      labels,
+      datasets: [{ label: 'ACoS', data: dailyData.map(d => d.acos), borderColor: '#f59e0b', backgroundColor: '#f59e0b22', fill: true, tension: .3 }]
+    }, options: opts('%')
+  });
+
+  if (charts.dailyClicks) charts.dailyClicks.destroy();
+  charts.dailyClicks = new Chart(document.getElementById('chart-daily-clicks'), {
+    type: 'bar', data: {
+      labels,
+      datasets: [
+        { label: 'Clicks', data: dailyData.map(d => d.clicks), backgroundColor: '#6366f1', borderRadius: 4 },
+        { label: 'Orders', data: dailyData.map(d => d.orders), backgroundColor: '#10b981', borderRadius: 4 }
+      ]
+    }, options: opts('')
+  });
+
+  if (charts.dailyImp) charts.dailyImp.destroy();
+  charts.dailyImp = new Chart(document.getElementById('chart-daily-imp'), {
+    type: 'line', data: {
+      labels,
+      datasets: [{ label: 'Impressions', data: dailyData.map(d => d.impressions), borderColor: '#ec4899', backgroundColor: '#ec489922', fill: true, tension: .3 }]
+    }, options: opts('')
+  });
+}
+
+async function loadData() {
+  showLoading(true);
+  try {
+    const [campRes, dailyRes] = await Promise.all([
+      apiFetch('campaigns?from=' + dateFrom + '&to=' + dateTo),
+      apiFetch('daily?from=' + dateFrom + '&to=' + dateTo)
+    ]);
+    campaigns = campRes.campaigns || [];
+    dailyData = dailyRes.daily || [];
+    document.getElementById('headerSub').textContent =
+      `Account ${campRes.account_id} • ${campaigns.length} campaigns • ${campRes.period?.from} to ${campRes.period?.to}`;
+    renderOverview();
+    renderCampaigns();
+  } catch (e) {
+    document.getElementById('tab-overview').innerHTML =
+      `<div class="empty"><h2>Cannot connect to API</h2><p>${e.message}</p><p style="margin-top:12px">Make sure DashboardController is installed and API is running.</p></div>`;
+  }
+  showLoading(false);
+}
+
+function applyDateRange() {
+  const f = document.getElementById('dateFrom').value;
+  const t = document.getElementById('dateTo').value;
+  if (f && t) { dateFrom = f; dateTo = t; loadData(); }
+}
+
+function setPreset(days) {
+  dateTo = new Date(Date.now() - 86400000).toISOString().split('T')[0];
+  dateFrom = new Date(Date.now() - days*86400000).toISOString().split('T')[0];
+  document.getElementById('dateFrom').value = dateFrom;
+  document.getElementById('dateTo').value = dateTo;
+  loadData();
+}
+
+function initDatePickers() {
+  document.getElementById('dateFrom').value = dateFrom;
+  document.getElementById('dateTo').value = dateTo;
+}
+
+initDatePickers();
+loadData();
+setInterval(loadData, 300000);
+
+// Auth check
+fetch('/auth/check', {credentials:'include'}).then(r => {
+  if (!r.ok) window.location.href = '/login.html';
+  return r.json();
+}).then(d => {
+  if (!d.authenticated) window.location.href = '/login.html';
+  else {
+    currentUserRole = d.user.role || 'viewer';
+    const hdr = document.querySelector('.header div');
+    if (hdr) {
+      const el = document.createElement('div');
+      el.style.cssText = 'font-size:12px;color:#71717a;margin-top:4px';
+      const roleBadge = currentUserRole === 'admin' ? '<span style="color:#6ee7b7;background:#064e3b;padding:1px 6px;border-radius:3px;font-size:10px;margin-left:4px">ADMIN</span>' : '<span style="color:#fcd34d;background:#78350f;padding:1px 6px;border-radius:3px;font-size:10px;margin-left:4px">VIEWER</span>';
+      el.innerHTML = 'Logged in as <strong style="color:#a1a1aa">' + d.user.name + '</strong>' + roleBadge + ' · <a href="#" onclick="doLogout()" style="color:#6366f1;text-decoration:none">Logout</a>';
+      hdr.appendChild(el);
+    }
+    renderCampaigns();
+  }
+}).catch(() => window.location.href = '/login.html');
+
+async function doLogout() {
+  await fetch('/sanctum/csrf-cookie', {credentials:'include'});
+  const tk = document.cookie.match(/XSRF-TOKEN=([^;]+)/)?.[1];
+  await fetch('/auth/logout', {method:'POST',credentials:'include',headers:{'X-XSRF-TOKEN':tk?decodeURIComponent(tk):'','Accept':'application/json'}});
+  window.location.href = '/login.html';
+}
+</script>
+</body>
+</html>
